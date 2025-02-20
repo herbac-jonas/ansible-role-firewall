@@ -29,13 +29,11 @@ iptables -P INPUT ACCEPT
 iptables -P FORWARD ACCEPT
 iptables -P OUTPUT ACCEPT
 
-{% if firewall_flush_rules_and_chains %}
-# Remove all rules and chains.
-iptables -t nat -F
-iptables -t mangle -F
-iptables -F
-iptables -X
-{% endif %}
+# Flush only the defined tables/chains
+{% for item in firewall_flush_items %}
+iptables -t {{ item.split(' ')[0] }} -F{% if item.split(' ')|length > 1 %} {{ item.split(' ')[1] }}{% endif %}
+{% endfor %}
+
 
 # Accept traffic from loopback interface (localhost).
 iptables -A INPUT -i lo -j ACCEPT
@@ -92,11 +90,10 @@ iptables -A INPUT -j DROP
 # Configure IPv6 if ip6tables is present.
 if [ -x "$(which ip6tables 2>/dev/null)" ]; then
 
-{% if firewall_flush_rules_and_chains %}
-  # Remove all rules and chains.
-  ip6tables -F
-  ip6tables -X
-{% endif %}
+# Flush only the defined tables/chains
+{% for item in firewall_flush_items %}
+ip6tables -t {{ item.split(' ')[0] }} -F{% if item.split(' ')|length > 1 %} {{ item.split(' ')[1] }}{% endif %}
+{% endfor %}
 
   # Accept traffic from loopback interface (localhost).
   ip6tables -A INPUT -i lo -j ACCEPT
