@@ -1,11 +1,68 @@
 ---
 - name: Ensure iptables is present.
-  package: name=iptables state=present
+  package:
+    name: iptables
+    state: present
 
-- name: Flush iptables the first time playbook runs.
-  command: >
-    iptables -F
-    creates=/etc/firewall.bash
+- name: Flush iptables completely (if enabled)
+  shell: >
+    iptables-save | awk '/^[*]/ { print $1 } 
+                         /^:[A-Z]+ [^-]/ { print $1 " ACCEPT" ; }
+                         /COMMIT/ { print $0; }' | iptables-restore
+  changed_when: true
+  when: firewall_flush_all
+
+- name: "Check if required chains exist (filter table)"
+  shell: iptables -nL {{ item }}
+  register: chain_check
+  ignore_errors: yes
+  changed_when: false
+  failed_when: chain_check.rc not in [0, 1]
+  loop: "{{ firewall_additional_chains }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: "Create missing filter table chains"
+  command: iptables -N {{ item }}
+  when: chain_check.results | selectattr('rc', 'equalto', 1) | map(attribute='item') | list | length > 0
+  loop: "{{ firewall_additional_chains }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: "Check if required chains exist (nat table)"
+  shell: iptables -t nat -nL {{ item }}
+  register: nat_chain_check
+  ignore_errors: yes
+  changed_when: false
+  failed_when: nat_chain_check.rc not in [0, 1]
+  loop: "{{ firewall_nat_chains }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: "Create missing nat table chains"
+  command: iptables -t nat -N {{ item }}
+  when: nat_chain_check.results | selectattr('rc', 'equalto', 1) | map(attribute='item') | list | length > 0
+  loop: "{{ firewall_nat_chains }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: "Check if rule exists using iptables -C"
+  shell: >
+    {{ item | regex_replace('^-A', '-C') }}
+  register: rule_check
+  ignore_errors: yes
+  changed_when: false
+  failed_when: rule_check.rc not in [0, 1]
+  loop: "{{ firewall_additional_rules }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: "Add rule if it doesn't exist"
+  command: "{{ item }}"
+  when: rule_check.results | selectattr('rc', 'equalto', 1) | list | length > 0
+  loop: "{{ firewall_additional_rules | map('regex_replace', '^iptables ', '') | list }}"
+  loop_control:
+    label: "{{ item }}"
 
 - name: Copy firewall script into place.
   template:
