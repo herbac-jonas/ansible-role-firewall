@@ -59,7 +59,7 @@ iptables -A INPUT -p udp -m udp --dport {{ port }} -j ACCEPT
 {% endfor %}
 
 # Accept icmp ping requests.
-iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+iptables -A INPUT -p icmp --icmp-type echo-request -m limit --limit 1/s --limit-burst 5 -j ACCEPT
 
 # Allow NTP traffic for time synchronization.
 iptables -A OUTPUT -p udp --dport 123 -j ACCEPT
@@ -106,6 +106,9 @@ ip6tables -t {{ item.split(' ')[0] }} -F{% if item.split(' ')|length > 1 %} {{ i
 {% for port in firewall_allowed_udp_ports %}
   ip6tables -A INPUT -p udp -m udp --dport {{ port }} -j ACCEPT
 {% endfor %}
+
+  # Accept icmp ping requests.
+  ip6tables -A INPUT -p icmpv6 --icmpv6-type echo-request -j ACCEPT
 
   # Accept ICMPv6 message types necessary for SLAAC plus echo request/reply
   ip6tables -A INPUT -p ipv6-icmp --icmpv6-type 128 -j ACCEPT  # Echo Request
