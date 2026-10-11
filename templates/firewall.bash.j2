@@ -30,8 +30,9 @@ iptables -P FORWARD ACCEPT
 iptables -P OUTPUT ACCEPT
 
 # Flush only the defined tables/chains
+{# Explicit \n: Jinja trim_blocks would otherwise glue consecutive -F lines together. #}
 {% for item in firewall_flush_items %}
-iptables -t {{ item.split(' ')[0] }} -F{% if item.split(' ')|length > 1 %} {{ item.split(' ')[1] }}{% endif %}
+iptables -t {{ item.split(' ')[0] }} -F{% if item.split(' ')|length > 1 %} {{ item.split(' ')[1] }}{% endif %}{{ "\n" }}
 {% endfor %}
 
 
@@ -91,8 +92,9 @@ iptables -A INPUT -j DROP
 if [ -x "$(which ip6tables 2>/dev/null)" ]; then
 
 # Flush only the defined tables/chains
+{# Explicit \n: Jinja trim_blocks would otherwise glue consecutive -F lines together. #}
 {% for item in firewall_flush_items %}
-ip6tables -t {{ item.split(' ')[0] }} -F{% if item.split(' ')|length > 1 %} {{ item.split(' ')[1] }}{% endif %}
+ip6tables -t {{ item.split(' ')[0] }} -F{% if item.split(' ')|length > 1 %} {{ item.split(' ')[1] }}{% endif %}{{ "\n" }}
 {% endfor %}
 
   # Accept traffic from loopback interface (localhost).
