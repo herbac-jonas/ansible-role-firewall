@@ -47,22 +47,22 @@
     label: "{{ item }}"
 
 - name: "Check if rule exists using iptables -C"
-  shell: >
-    {{ item | regex_replace('^-A', '-C') }}
+  command: "{{ item | regex_replace('^(ip6?tables) -[AI] ', '\\1 -C ') }}"
   register: rule_check
   ignore_errors: yes
   changed_when: false
+  check_mode: false
   failed_when: rule_check.rc not in [0, 1]
   loop: "{{ firewall_additional_rules }}"
   loop_control:
     label: "{{ item }}"
 
 - name: "Add rule if it doesn't exist"
-  command: "{{ item }}"
-  when: rule_check.results | selectattr('rc', 'equalto', 1) | list | length > 0
-  loop: "{{ firewall_additional_rules | map('regex_replace', '^iptables ', '') | list }}"
+  command: "{{ item.item }}"
+  when: item.rc == 1
+  loop: "{{ rule_check.results }}"
   loop_control:
-    label: "{{ item }}"
+    label: "{{ item.item }}"
 
 - name: Copy firewall script into place.
   template:
