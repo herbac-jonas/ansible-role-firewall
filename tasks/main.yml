@@ -89,7 +89,14 @@
     owner: root
     group: root
     mode: 0644
+  register: firewall_unit
   when: "ansible_facts.service_mgr == 'systemd'"
+
+# Before the restart handler runs, so it stops with the new ExecStop.
+- name: Reload systemd if the unit file changed.
+  systemd:
+    daemon_reload: true
+  when: firewall_unit is changed
 
 - name: Configure the firewall service.
   service:

@@ -5,7 +5,10 @@ After=syslog.target network.target
 [Service]
 Type=oneshot
 ExecStart=/etc/firewall.bash
-ExecStop=/sbin/iptables -F
+{# Flush only what firewall.bash flushes; a bare -F also wipes Docker's filter chains. #}
+{% for item in firewall_flush_items %}
+ExecStop=/sbin/iptables -t {{ item.split(' ')[0] }} -F{{ (' ' ~ item.split(' ')[1]) if item.split(' ')|length > 1 else '' }}
+{% endfor %}
 RemainAfterExit=yes
 
 [Install]
