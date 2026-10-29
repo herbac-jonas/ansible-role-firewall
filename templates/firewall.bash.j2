@@ -26,7 +26,7 @@ fi
 
 # Set the default rules.
 iptables -P INPUT ACCEPT
-iptables -P FORWARD ACCEPT
+{# No FORWARD policy: Docker sets it to DROP and must keep it. #}
 iptables -P OUTPUT ACCEPT
 
 # Flush only the defined tables/chains
